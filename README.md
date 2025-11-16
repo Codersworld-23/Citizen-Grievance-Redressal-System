@@ -9,7 +9,7 @@ Built with React + Tailwind, Node.js + Express and MongoDB, the system streamlin
 
 - [About the Project](#-about-the-project)
 - [Features](#-features)
-- [Tech Stack](#-tech-stack)
+- [Tech Stack](#%EF%B8%8F-tech-stack)
 - [System Architecture](#-system-architecture)
 - [Folder Structure](#-folder-structure)
 - [Screenshots](#-screenshots)
