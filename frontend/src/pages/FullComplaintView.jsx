@@ -45,35 +45,43 @@ export default function FullComplaintView() {
     return <div className="max-w-2xl mx-auto mt-12 text-center text-gray-500">Complaint not found or you do not have access.</div>;
 
   return (
-    <div className="max-w-6xl mx-auto mt-8 bg-white p-8 rounded-xl shadow h-[76vh]">
-      <h2 className="text-2xl font-bold text-blue-700 mb-2">{complaint.title}</h2>
-      <div className="mb-2 text-gray-700">{complaint.description}</div>
-      <div className="text-sm text-gray-500 mb-2">Department: {complaint.department} • Location: {complaint.locationText}</div>
-      <div className="text-sm text-gray-500 mb-2">Upvotes: {complaint.upvotes}</div>
-      <div className="text-sm mb-2">Status: <span className="font-semibold">{complaint.status}</span></div>
-      {complaint.photos && complaint.photos.length > 0 && (
-        <div className="flex flex-wrap gap-6 mb-6 justify-center">
-          {complaint.photos.map((p, i) => (
-            <img
-              key={i}
-              src={`http://localhost:5000/${p.replace(/\\/g, "/")}`}
-              alt="Complaint"
-              className="max-w-full h-auto object-contain rounded-xl border-20 border-gray-300 shadow"
-              style={{ maxHeight: "18rem" }}
-            />
-          ))}
+    <div className="max-w-6xl mx-auto mt-8 mb-8 bg-white p-8 rounded-xl shadow">
+      <div className="max-h-[80vh] overflow-y-auto pr-2">
+        <h2 className="text-2xl font-bold text-blue-700 mb-4">{complaint.title}</h2>
+        <div className="mb-4 text-gray-700 leading-relaxed">{complaint.description}</div>
+        <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-4 p-3 bg-gray-50 rounded-lg">
+          <div><span className="font-semibold">Department:</span> {complaint.department}</div>
+          <div><span className="font-semibold">Location:</span> {complaint.locationText}</div>
+          <div><span className="font-semibold">Upvotes:</span> {complaint.upvotes}</div>
+          <div><span className="font-semibold">Status:</span> <span className="text-blue-600 font-semibold">{complaint.status}</span></div>
         </div>
-      )}
-      {complaint.authorityComments && complaint.authorityComments.length > 0 && (
-        <div className="mt-4 border-t pt-3">
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">Department Comments</h3>
-          {complaint.authorityComments.map((ac, i) => (
-            <div key={i} className="text-sm text-gray-600 mb-1">
-              • {ac.comment} <span className="text-xs text-gray-400">({new Date(ac.createdAt).toLocaleString()})</span>
+        {complaint.photos && complaint.photos.length > 0 && (
+          <div className="flex flex-wrap gap-6 mb-6 justify-center">
+            {complaint.photos.map((p, i) => (
+              <img
+                key={i}
+                src={`http://localhost:5000/${p.replace(/\\/g, "/")}`}
+                alt="Complaint"
+                className="max-w-full h-auto object-contain rounded-xl border border-gray-300 shadow"
+                style={{ maxHeight: "18rem" }}
+              />
+            ))}
+          </div>
+        )}
+        {complaint.authorityComments && complaint.authorityComments.length > 0 && (
+          <div className="mt-6 border-t pt-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-blue-300">Department Comments</h3>
+            <div className="space-y-3 max-h-[30vh] overflow-y-auto">
+              {complaint.authorityComments.map((ac, i) => (
+                <div key={i} className="p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+                  <div className="text-sm text-gray-700 break-words">{ac.comment}</div>
+                  <span className="text-xs text-gray-500 mt-1 block">{new Date(ac.createdAt).toLocaleString()}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -5,10 +5,20 @@ import User from "../models/User.js";
 
 const router = express.Router();
 
+// Email validation helper
+const isValidEmail = (email) => {
+  const validDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'aol.com', 'mail.com', 'protonmail.com'];
+  const domain = email.split('@')[1];
+  return validDomains.includes(domain?.toLowerCase());
+};
+
 // Citizen Registration
 router.post("/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: "Please use a valid email domain (gmail.com, yahoo.com, outlook.com, hotmail.com, aol.com, mail.com, or protonmail.com)" });
+    }
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ message: "Email already exists" });
     const passwordHash = await bcrypt.hash(password, 10);
@@ -23,6 +33,9 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: "Please use a valid email domain (gmail.com, yahoo.com, outlook.com, hotmail.com, aol.com, mail.com, or protonmail.com)" });
+    }
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "No account found" });
     const valid = await bcrypt.compare(password, user.passwordHash);

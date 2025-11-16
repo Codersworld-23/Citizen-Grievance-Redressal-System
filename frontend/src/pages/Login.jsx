@@ -5,8 +5,20 @@ export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
 
+  const isValidEmail = (email) => {
+    const validDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'aol.com', 'mail.com', 'protonmail.com'];
+    const domain = email.split('@')[1];
+    return validDomains.includes(domain?.toLowerCase());
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!isValidEmail(form.email)) {
+      alert('Please use a valid email domain (gmail.com, yahoo.com, outlook.com, hotmail.com, aol.com, mail.com, or protonmail.com)');
+      return;
+    }
+
     try {
       setLoading(true);
       const res = await axios.post("http://localhost:5000/api/auth/login", form);
