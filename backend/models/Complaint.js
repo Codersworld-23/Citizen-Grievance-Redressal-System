@@ -42,5 +42,10 @@ const complaintSchema = new mongoose.Schema(
     timestamps: true // ✅ Automatically adds createdAt & updatedAt
   }
 );
-
+// Performance Indexes
+complaintSchema.index({ department: 1 });
+complaintSchema.index({ status: 1 });
+complaintSchema.index({ locationText: 1 });
+complaintSchema.index({ createdAt: -1 });
+complaintSchema.index({ upvotes: -1 });
 export default mongoose.model("Complaint", complaintSchema);

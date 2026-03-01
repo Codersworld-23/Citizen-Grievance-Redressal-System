@@ -45,36 +45,30 @@ router.get("/all", authMiddleware, async (req, res) => {
 router.post("/:id/upvote", authMiddleware, async (req, res) => {
   try {
     const complaint = await Complaint.findById(req.params.id);
+
     if (!complaint)
       return res.status(404).json({ message: "Not found" });
 
-    // ❌ No upvote if resolved
-    if (complaint.status === "Resolved") {
-      return res.status(400).json({
-        message: "Cannot upvote resolved complaints"
-      });
-    }
+    if (complaint.status === "Resolved")
+      return res.status(400).json({ message: "Cannot upvote resolved complaints" });
 
-    // ❌ Author cannot upvote
-    if (complaint.authorId.toString() === req.user.id) {
-      return res.status(400).json({
-        message: "You cannot upvote your own complaint"
-      });
-    }
+    if (complaint.authorId.toString() === req.user.id)
+      return res.status(400).json({ message: "You cannot upvote your own complaint" });
 
-    // ❌ Already upvoted
-    if (complaint.upvoters.includes(req.user.id)) {
-      return res.status(400).json({
-        message: "Already upvoted"
-      });
-    }
+    if (complaint.upvoters.includes(req.user.id))
+      return res.status(400).json({ message: "Already upvoted" });
 
-    complaint.upvotes += 1;
-    complaint.upvoters.push(req.user.id);
+    // 🔥 Atomic Update
+    const updatedComplaint = await Complaint.findByIdAndUpdate(
+      req.params.id,
+      {
+        $inc: { upvotes: 1 },
+        $push: { upvoters: req.user.id }
+      },
+      { new: true }
+    );
 
-    await complaint.save();
-
-    res.json(complaint);
+    res.json(updatedComplaint);
 
   } catch (err) {
     res.status(500).json({ message: err.message });
