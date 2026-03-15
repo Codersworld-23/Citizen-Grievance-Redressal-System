@@ -1,229 +1,473 @@
+import User from "../models/User.js";
+import { sendEmail as sendAsyncEmail } from "../utils/emailService.js";
 import express from "express";
 import multer from "multer";
+import path from "path";
 import Complaint from "../models/Complaint.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { authorizeRoles } from "../middleware/roleMiddleware.js";
 
 const router = express.Router();
-const upload = multer({ dest: "uploads/" });
 
-// Create complaint (citizen)
-router.post("/", authMiddleware, upload.array("photos", 3), async (req, res) => {
-  try {
-    const photoPaths = req.files ? req.files.map(f => f.path) : [];
-    const { title, description, locationText, department } = req.body;
-    if (!title || !description || !locationText || !department)
-      return res.status(400).json({ message: "Missing required fields" });
+/* =============================
+   📧 Email Templates
+============================= */
 
-    const newComplaint = await Complaint.create({
-      title, description, locationText, department,
-      photos: photoPaths,
-      authorId: req.user.id,
-      upvotes: 1,
-      upvoters: [req.user.id] // author auto counted
-    });
-    res.status(201).json(newComplaint);
-  } catch (err) {
-    res.status(500).json({ message: "Error creating complaint", error: err.message });
+const complaintCreatedTemplate = (title, location, department) => `
+<div style="font-family:Arial;padding:20px">
+<h2>New Complaint Filed</h2>
+
+<table>
+<tr><td><b>Title:</b></td><td>${title}</td></tr>
+<tr><td><b>Location:</b></td><td>${location}</td></tr>
+<tr><td><b>Department:</b></td><td>${department}</td></tr>
+</table>
+
+<p>Please login to the dashboard to review it.</p>
+</div>
+`;
+
+const statusUpdateTemplate = (title, status) => `
+<div style="font-family:Arial;padding:20px">
+<h2>Complaint Status Updated</h2>
+
+<p><b>${title}</b></p>
+<p>Status: <b>${status}</b></p>
+</div>
+`;
+
+const commentTemplate = (title, comment) => `
+<div style="font-family:Arial;padding:20px">
+<h2>Authority Comment</h2>
+
+<p><b>${title}</b></p>
+
+<div style="background:#f4f4f4;padding:10px;border-radius:5px">
+${comment}
+</div>
+</div>
+`;
+
+const complaintDeletedTemplate = (title, location, department) => `
+<div style="font-family:Arial;padding:20px">
+<h2>Complaint Deleted by Citizen</h2>
+
+<p>A complaint previously submitted has been deleted by the citizen.</p>
+
+<table>
+<tr><td><b>Title:</b></td><td>${title}</td></tr>
+<tr><td><b>Location:</b></td><td>${location}</td></tr>
+<tr><td><b>Department:</b></td><td>${department}</td></tr>
+</table>
+
+<p>The complaint has been removed from the portal.</p>
+
+<hr/>
+<small>City Grievance Redressal System</small>
+</div>
+`;
+
+/* =============================
+   📦 Multer Setup
+============================= */
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, "uploads/"),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname) || "";
+    const name = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+    cb(null, name);
   }
 });
 
-// My complaints (citizen)
-router.get("/my", authMiddleware, async (req, res) => {
-  const complaints = await Complaint.find({ authorId: req.user.id }).sort({ upvotes: -1 });
-  res.json(complaints);
-});
+const upload = multer({ storage });
 
-// All complaints for browsing (authenticated users) - can be filtered by dept
-router.get("/all", authMiddleware, async (req, res) => {
-  const filter = req.query.department ? { department: req.query.department } : {};
-  const complaints = await Complaint.find(filter).sort({ upvotes: -1 });
-  res.json(complaints);
-});
+/* =============================
+   🔍 Duplicate Check
+============================= */
 
-// Upvote (authenticated user)
-router.post("/:id/upvote", authMiddleware, async (req, res) => {
+router.post("/check-duplicate", authMiddleware, async (req, res) => {
+
   try {
-    const complaint = await Complaint.findById(req.params.id);
 
-    if (!complaint)
-      return res.status(404).json({ message: "Not found" });
+    const { title, locationText, department } = req.body;
 
-    if (complaint.status === "Resolved")
-      return res.status(400).json({ message: "Cannot upvote resolved complaints" });
+    const matches = await Complaint.find({
+      department,
+      locationText: { $regex: locationText, $options: "i" },
+      status: { $nin: ["Resolved","Rejected"] }
+    }).select("title");
 
-    if (complaint.authorId.toString() === req.user.id)
-      return res.status(400).json({ message: "You cannot upvote your own complaint" });
+    if (!matches.length)
+      return res.json({ duplicate:false });
 
-    if (complaint.upvoters.includes(req.user.id))
-      return res.status(400).json({ message: "Already upvoted" });
+    const words = title.toLowerCase().split(" ");
 
-    // 🔥 Atomic Update
-    const updatedComplaint = await Complaint.findByIdAndUpdate(
-      req.params.id,
-      {
-        $inc: { upvotes: 1 },
-        $push: { upvoters: req.user.id }
-      },
-      { new: true }
+    const similar = matches.filter(c =>
+      words.some(w => c.title.toLowerCase().includes(w))
     );
 
-    res.json(updatedComplaint);
+    if(similar.length)
+      return res.json({ duplicate:true, similarComplaints:similar });
 
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.json({ duplicate:false });
+
+  } catch(err) {
+
+    res.status(500).json({ error:err.message });
+
   }
+
 });
 
-router.get("/", authMiddleware, authorizeRoles("authority"), async (req, res) => {
-  try {
-    const {
-      status,
-      area,
-      sort,
-      page = 1,
-      limit = 10
-    } = req.query;
+/* =============================
+   ➕ Create Complaint
+============================= */
 
-    // 🔥 Base filter for authorities
-    const filter = {
-      $and: [
-        {
-          $or: [
-            { department: req.user.department },
-            { department: "General" }
-          ]
-        },
-        {
-          status: { $nin: ["Resolved", "Rejected"] } // ❌ Hide resolved & rejected
-        }
-      ]
-    };
+router.post("/", authMiddleware, upload.array("photos",3), async (req,res)=>{
 
-    // ✅ Allow filtering ONLY allowed statuses
-    if (status && !["Resolved", "Rejected"].includes(status)) {
-      filter.$and.push({ status });
-    }
+  try{
 
-    // 🔥 FIX AREA FILTER (CASE INSENSITIVE PARTIAL MATCH)
-    if (area) {
-      filter.$and.push({
-        locationText: { $regex: area, $options: "i" }
-      });
-    }
+    const photoPaths = req.files ? req.files.map(f=>f.path) : [];
 
-    // Sorting
-    let sortOption = { createdAt: -1 };
+    const {title,description,locationText,department} = req.body;
 
-    if (sort === "upvotes") {
-      sortOption = { upvotes: -1 };
-    } else if (sort === "date") {
-      sortOption = { createdAt: -1 };
-    }
+    const newComplaint = await Complaint.create({
 
-    const skip = (page - 1) * limit;
+      title,
+      description,
+      locationText,
+      department,
+      photos:photoPaths,
+      authorId:req.user.id,
+      upvotes:1,
+      upvoters:[req.user.id]
 
-    const complaints = await Complaint.find(filter)
-      .sort(sortOption)
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    const total = await Complaint.countDocuments(filter);
-
-    res.json({
-      complaints,
-      totalPages: Math.ceil(total / limit),
-      currentPage: parseInt(page)
     });
 
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    /* Send ONE demo email */
+
+    await sendAsyncEmail(
+      process.env.DEMO_EMAIL,
+      "New Complaint Filed",
+      complaintCreatedTemplate(title,locationText,department),
+      null,
+      newComplaint._id,
+      "NEW_COMPLAINT"
+    );
+
+    res.status(201).json(newComplaint);
+
+  }catch(err){
+
+    res.status(500).json({
+      message:"Error creating complaint",
+      error:err.message
+    });
+
   }
+
 });
 
-// Authority: Update status + comment
-router.put("/:id/status", authMiddleware, authorizeRoles("authority"), async (req, res) => {
-  try {
-    const { status, comment } = req.body;
+/* =============================
+   👤 My Complaints
+============================= */
+
+router.get("/my", authMiddleware, async (req,res)=>{
+
+  const complaints = await Complaint
+    .find({authorId:req.user.id})
+    .sort({upvotes:-1});
+
+  res.json(complaints);
+
+});
+
+/* =============================
+   🌍 Browse Complaints
+============================= */
+
+router.get("/all", authMiddleware, async (req,res)=>{
+
+  const complaints = await Complaint
+    .find()
+    .sort({upvotes:-1});
+
+  res.json(complaints);
+
+});
+
+/* =============================
+   📄 View Single Complaint
+============================= */
+
+router.get("/:id", authMiddleware, async (req,res)=>{
+
+  try{
+
+    const complaint = await Complaint
+      .findById(req.params.id)
+      .populate("authorId","name email")
+      .populate("authorityComments.by","name");
+
+    if(!complaint)
+      return res.status(404).json({message:"Complaint not found"});
+
+    const isAuthor =
+      complaint.authorId._id.toString() === req.user.id;
+
+    const isAuthority =
+      req.user.role === "authority" &&
+      (complaint.department === "General" ||
+       complaint.department === req.user.department);
+
+    if(!isAuthor && !isAuthority)
+      return res.status(403).json({
+        message:"Complaint not found or you do not have access"
+      });
+
+    res.json(complaint);
+
+  }catch(err){
+
+    res.status(500).json({
+      message:"Error fetching complaint",
+      error:err.message
+    });
+
+  }
+
+});
+
+/* =============================
+   👍 Upvote
+============================= */
+
+router.post("/:id/upvote", authMiddleware, async (req,res)=>{
+
+  try{
 
     const complaint = await Complaint.findById(req.params.id);
-    if (!complaint) return res.status(404).json({ message: "Not found" });
 
-    if (status) {
+    if(!complaint)
+      return res.status(404).json({message:"Not found"});
 
-      // ❌ Authority cannot reopen
-      if (status === "Reopened") {
-        return res.status(403).json({
-          message: "Authorities cannot reopen complaints"
-        });
-      }
+    if(complaint.authorId.toString()===req.user.id)
+      return res.status(400).json({message:"Cannot upvote own complaint"});
 
-      // Validate status
-      if (![
-        "Submitted",
-        "In Progress",
-        "On Hold",
-        "Resolved",
-        "Rejected"
-      ].includes(status))
-        return res.status(400).json({ message: "Invalid status" });
+    if(complaint.upvoters.includes(req.user.id))
+      return res.status(400).json({message:"Already upvoted"});
 
-      complaint.status = status;
-
-      // If resolved → set resolvedAt
-      if (status === "Resolved") {
-        complaint.resolvedAt = new Date();
-      }
-
-      // If moved away from resolved → clear resolvedAt
-      if (status !== "Resolved") {
-        complaint.resolvedAt = null;
-      }
-    }
-
-    if (comment) {
-      complaint.authorityComments.push({
-        by: req.user.id,
-        comment
-      });
-    }
+    complaint.upvotes += 1;
+    complaint.upvoters.push(req.user.id);
 
     await complaint.save();
 
     res.json(complaint);
 
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+  }catch(err){
+
+    res.status(500).json({message:err.message});
+
   }
+
 });
 
-// Citizen: Reopen complaint
-router.put("/:id/reopen", authMiddleware, authorizeRoles("citizen"), async (req, res) => {
-  try {
+/* =============================
+   🗑 Delete Complaint
+============================= */
+
+router.delete("/:id", authMiddleware, authorizeRoles("citizen"), async (req,res)=>{
+
+  try{
+
     const complaint = await Complaint.findById(req.params.id);
 
-    if (!complaint)
-      return res.status(404).json({ message: "Complaint not found" });
-
-    if (complaint.status !== "Resolved") {
-      return res.status(400).json({
-        message: "Only resolved complaints can be reopened"
+    if(!complaint)
+      return res.status(404).json({
+        message:"Complaint not found"
       });
+
+    if(complaint.authorId.toString() !== req.user.id)
+      return res.status(403).json({
+        message:"You can delete only your own complaints"
+      });
+
+    const title = complaint.title;
+    const location = complaint.locationText;
+    const department = complaint.department;
+
+    await complaint.deleteOne();
+
+    /* Notify authorities (demo email) */
+
+    await sendAsyncEmail(
+      process.env.DEMO_EMAIL,
+      "Complaint Deleted by Citizen",
+      complaintDeletedTemplate(title,location,department),
+      null,
+      null,
+      "DELETED"
+    );
+
+    res.json({
+      message:"Complaint deleted successfully"
+    });
+
+  }catch(err){
+
+    res.status(500).json({
+      message:"Server error",
+      error:err.message
+    });
+
+  }
+
+});
+
+/* =============================
+   📊 Authority Dashboard
+============================= */
+
+router.get("/", authMiddleware, authorizeRoles("authority"), async (req,res)=>{
+
+  try{
+
+    const complaints = await Complaint.find({
+
+      $or:[
+        {department:req.user.department},
+        {department:"General"}
+      ]
+
+    }).sort({createdAt:-1});
+
+    res.json({ complaints });
+
+  }catch(err){
+
+    res.status(500).json({error:err.message});
+
+  }
+
+});
+
+/* =============================
+   🔧 Authority Update Status
+============================= */
+
+router.put("/:id/status", authMiddleware, authorizeRoles("authority"), async (req,res)=>{
+
+  try{
+
+    const {status,comment} = req.body;
+
+    const complaint = await Complaint.findById(req.params.id);
+
+    if(!complaint)
+      return res.status(404).json({message:"Not found"});
+
+    if(status){
+
+      complaint.status=status;
+
+      if(status==="Resolved")
+        complaint.resolvedAt=new Date();
+
     }
 
-    complaint.status = "Reopened";
-    complaint.resolvedAt = null;
+    if(comment){
+
+      complaint.authorityComments.push({
+        by:req.user.id,
+        comment
+      });
+
+    }
 
     await complaint.save();
 
+    /* Send emails based on what was updated */
+
+    if(comment){
+      await sendAsyncEmail(
+        process.env.DEMO_EMAIL,
+        "New Comment on Your Complaint",
+        commentTemplate(complaint.title,comment),
+        null,
+        complaint._id,
+        "COMMENT"
+      );
+    }
+
+    if(status){
+      await sendAsyncEmail(
+        process.env.DEMO_EMAIL,
+        "Complaint Status Updated",
+        statusUpdateTemplate(complaint.title,complaint.status),
+        null,
+        complaint._id,
+        "STATUS_UPDATE"
+      );
+    }
+
+    res.json(complaint);
+
+  }catch(err){
+
+    res.status(500).json({error:err.message});
+
+  }
+
+});
+
+/* =============================
+   🔄 Citizen Reopen
+============================= */
+
+router.put("/:id/reopen", authMiddleware, authorizeRoles("citizen"), async (req,res)=>{
+
+  try{
+
+    const complaint = await Complaint.findById(req.params.id);
+
+    if(!complaint)
+      return res.status(404).json({message:"Complaint not found"});
+
+    if(complaint.status !== "Resolved")
+      return res.status(400).json({
+        message:"Only resolved complaints can be reopened"
+      });
+
+    complaint.status="Reopened";
+    complaint.resolvedAt=null;
+
+    await complaint.save();
+
+    await sendAsyncEmail(
+      process.env.DEMO_EMAIL,
+      "Complaint Reopened",
+      complaintCreatedTemplate(
+        complaint.title,
+        complaint.locationText,
+        complaint.department
+      ),
+      null,
+      complaint._id,
+      "REOPENED"
+    );
+
     res.json({
-      message: "Complaint reopened successfully",
+      message:"Complaint reopened successfully",
       complaint
     });
 
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+  }catch(err){
+
+    res.status(500).json({error:err.message});
+
   }
+
 });
 
 export default router;

@@ -11,30 +11,14 @@ export default function FullComplaintView() {
 
   const fetchComplaint = async () => {
     try {
-      let res;
-
-      if (role === "authority") {
-        res = await axios.get(`http://localhost:5000/api/complaints`, {
-          headers: { Authorization: `Bearer ${token}` },
-          params: { sort: "top" }
-        });
-      } else {
-        try {
-          res = await axios.get(`http://localhost:5000/api/complaints/all`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-        } catch {
-          res = await axios.get(`http://localhost:5000/api/complaints/my`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-        }
-      }
-
-      const found = res.data.find((c) => c._id === id);
-      setComplaint(found);
-
+      // Directly fetch the single complaint by ID (much more efficient!)
+      const res = await axios.get(
+        `http://localhost:5000/api/complaints/${id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setComplaint(res.data);
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching complaint:", err);
       setComplaint(null);
     }
   };

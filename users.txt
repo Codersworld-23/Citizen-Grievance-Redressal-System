@@ -5,3 +5,6 @@ princygarg2004@gmail.com
 Gunjan Garg
 gunjan123@yahoo.com
 5678pqrs
+
+
+For development purposes, authority emails are redirected to a centralized inbox to avoid creating multiple real mailboxes.

@@ -4,9 +4,11 @@ import mongoose from "mongoose";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
+import fs from "fs";
 
 import authRoutes from "./routes/authRoutes.js";
 import complaintRoutes from "./routes/complaintRoutes.js";
+import Complaint from "./models/Complaint.js";
 
 dotenv.config();
 const app = express();
@@ -15,8 +17,12 @@ const app = express();
    🔐 Security Middleware
 ======================= */
 
-// Helmet adds security headers
-app.use(helmet());
+// Helmet adds security headers (disable CSP for now to test)
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: false,
+  crossOriginOpenerPolicy: false
+}));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -35,8 +41,8 @@ app.use(cors({
   credentials: true
 }));
 
-// Static folder
-app.use("/uploads", express.static("uploads"));
+// Static folder - with explicit CORS
+app.use("/uploads", cors(), express.static("uploads"));
 
 /* =======================
    🗄 Database Connection
@@ -53,6 +59,20 @@ mongoose
 
 app.use("/api/auth", authRoutes);
 app.use("/api/complaints", complaintRoutes);
+
+// 🔍 DEBUG: Check image paths in DB
+app.get("/api/debug/images", async (req, res) => {
+  try {
+    const complaints = await Complaint.find({}, { _id: 1, title: 1, photos: 1 }).limit(5);
+    const uploadsFiles = fs.readdirSync("uploads/");
+    res.json({
+      uploadsFolderContents: uploadsFiles,
+      complaintsInDB: complaints
+    });
+  } catch (err) {
+    res.json({ error: err.message });
+  }
+});
 
 /* =======================
    ❌ Global Error Handler

@@ -48,4 +48,9 @@ complaintSchema.index({ status: 1 });
 complaintSchema.index({ locationText: 1 });
 complaintSchema.index({ createdAt: -1 });
 complaintSchema.index({ upvotes: -1 });
+complaintSchema.index({ 
+  department: 1, 
+  locationText: 1, 
+  status: 1 
+});      // Compound index for duplicate detection
 export default mongoose.model("Complaint", complaintSchema);
