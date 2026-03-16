@@ -1,11 +1,13 @@
 import User from "../models/User.js";
 import { sendEmail as sendAsyncEmail } from "../utils/emailService.js";
 import express from "express";
-import multer from "multer";
 import path from "path";
 import Complaint from "../models/Complaint.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { authorizeRoles } from "../middleware/roleMiddleware.js";
+import multer from "multer";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
+import cloudinary from "../config/cloudinary.js";
 
 const router = express.Router();
 
@@ -68,16 +70,15 @@ const complaintDeletedTemplate = (title, location, department) => `
 `;
 
 /* =============================
-   📦 Multer Setup
+   📦 Cloudinary Setup
 ============================= */
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname) || "";
-    const name = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-    cb(null, name);
-  }
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "cgrs_complaints",
+    allowed_formats: ["jpg", "png", "jpeg"],
+  },
 });
 
 const upload = multer({ storage });
