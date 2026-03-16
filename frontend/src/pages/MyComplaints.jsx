@@ -10,7 +10,7 @@ export default function MyComplaints() {
     try {
 
       const res = await axios.get(
-        "http://localhost:5000/api/complaints/my",
+        "http://cgrs-backend.onrender.com/api/complaints/my",
         { headers:{ Authorization:`Bearer ${token}` } }
       );
 
@@ -30,7 +30,7 @@ export default function MyComplaints() {
     try{
 
       await axios.put(
-        `http://localhost:5000/api/complaints/${id}/reopen`,
+        `http://cgrs-backend.onrender.com/api/complaints/${id}/reopen`,
         {},
         { headers:{ Authorization:`Bearer ${token}` } }
       );
@@ -51,7 +51,7 @@ export default function MyComplaints() {
     try{
 
       await axios.delete(
-        `http://localhost:5000/api/complaints/${id}`,
+        `http://cgrs-backend.onrender.com/api/complaints/${id}`,
         { headers:{ Authorization:`Bearer ${token}` } }
       );
 

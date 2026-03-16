@@ -11,7 +11,7 @@ export default function AllComplaints() {
   const fetchComplaints = async () => {
     try {
       const r2 = await axios.get(
-        "http://localhost:5000/api/complaints/all",
+        "http://cgrs-backend.onrender.com/api/complaints/all",
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -30,7 +30,7 @@ export default function AllComplaints() {
   const upvote = async (id) => {
     try {
       await axios.post(
-        `http://localhost:5000/api/complaints/${id}/upvote`,
+        `http://cgrs-backend.onrender.com/api/complaints/${id}/upvote`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -119,7 +119,7 @@ export default function AllComplaints() {
                         {c.photos.map((p, i) => (
                           <img
                             key={i}
-                            src={`http://localhost:5000/${p.replace(/\\/g, "/")}`}
+                            src={`http://cgrs-backend.onrender.com/${p.replace(/\\/g, "/")}`}
                             alt="Complaint"
                             className="w-24 h-24 object-cover rounded border"
                           />

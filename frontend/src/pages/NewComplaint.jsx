@@ -29,7 +29,7 @@ export default function NewComplaint() {
 
       // 🔁 First check duplicates
       const checkRes = await axios.post(
-        "http://localhost:5000/api/complaints/check-duplicate",
+        "http://cgrs-backend.onrender.com/api/complaints/check-duplicate",
         {
           title: form.title,
           locationText: form.locationText,
@@ -64,7 +64,7 @@ export default function NewComplaint() {
     for (let i = 0; i < photos.length; i++) fd.append("photos", photos[i]);
 
     await axios.post(
-      "http://localhost:5000/api/complaints",
+      "http://cgrs-backend.onrender.com/api/complaints",
       fd,
       { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -84,7 +84,7 @@ export default function NewComplaint() {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        `http://localhost:5000/api/complaints/${id}/upvote`,
+        `http://cgrs-backend.onrender.com/api/complaints/${id}/upvote`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
