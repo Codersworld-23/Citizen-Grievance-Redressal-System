@@ -13,7 +13,7 @@ export default function FullComplaintView() {
     try {
       // Directly fetch the single complaint by ID (much more efficient!)
       const res = await axios.get(
-        `http://cgrs-backend.onrender.com/api/complaints/${id}`,
+        `https://cgrs-backend.onrender.com/api/complaints/${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setComplaint(res.data);
@@ -31,7 +31,7 @@ export default function FullComplaintView() {
   const handleReopen = async () => {
     try {
       await axios.put(
-        `http://cgrs-backend.onrender.com/complaints/${id}/reopen`,
+        `https://cgrs-backend.onrender.com/complaints/${id}/reopen`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -103,7 +103,7 @@ export default function FullComplaintView() {
             {complaint.photos.map((p, i) => (
               <img
                 key={i}
-                src={`http://cgrs-backend.onrender.com/${p.replace(/\\/g, "/")}`}
+                src={`https://cgrs-backend.onrender.com/${p.replace(/\\/g, "/")}`}
                 alt="Complaint"
                 className="max-w-full h-auto object-contain rounded-xl border border-gray-300 shadow"
                 style={{ maxHeight: "18rem" }}

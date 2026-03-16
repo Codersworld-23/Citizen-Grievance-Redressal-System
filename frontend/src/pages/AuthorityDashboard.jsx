@@ -22,7 +22,7 @@ export default function AuthorityDashboard() {
     if (!token) return;
     try {
       const res = await axios.get(
-        "http://cgrs-backend.onrender.com/api/complaints",
+        "https://cgrs-backend.onrender.com/api/complaints",
         {
           headers: { Authorization: `Bearer ${token}` },
           params: {
@@ -52,7 +52,7 @@ export default function AuthorityDashboard() {
       setSavingState({ id, state: "saving" });
 
       await axios.put(
-        `http://cgrs-backend.onrender.com/api/complaints/${id}/status`,
+        `https://cgrs-backend.onrender.com/api/complaints/${id}/status`,
         update,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -163,7 +163,7 @@ export default function AuthorityDashboard() {
                   {c.photos.map((p, i) => (
                     <img
                       key={i}
-                      src={`http://cgrs-backend.onrender.com/${p.replace(/\\/g, "/")}`}
+                      src={`https://cgrs-backend.onrender.com/${p.replace(/\\/g, "/")}`}
                       alt="Complaint"
                       className="w-24 h-24 object-cover rounded border"
                     />
