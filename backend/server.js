@@ -129,11 +129,18 @@ app.use(express.json({ limit: "10kb" }));
    🌐 CORS
 ======================= */
 
+// app.use(cors({
+//   origin: process.env.CLIENT_URL || "*",
+//   credentials: true
+// }));
 app.use(cors({
-  origin: process.env.CLIENT_URL || "*",
+  origin: [
+    "http://localhost:5173",
+    "https://citizen-grievance-redressal-system.vercel.app"
+  ],
   credentials: true
 }));
-
+app.options("*", cors());
 /* =======================
    📂 Static uploads
 ======================= */
