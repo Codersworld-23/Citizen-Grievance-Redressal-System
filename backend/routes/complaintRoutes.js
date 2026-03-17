@@ -334,16 +334,40 @@ router.get("/", authMiddleware, authorizeRoles("authority"), async (req,res)=>{
 
   try{
 
-    const complaints = await Complaint.find({
+    const { status, area, sort, page = 1, limit = 6 } = req.query;
 
+    const query = {
       $or:[
-        {department:req.user.department},
-        {department:"General"}
+        { department: req.user.department },
+        { department: "General" }
       ]
+    };
 
-    }).sort({createdAt:-1});
+    // By default exclude resolved and rejected from the active dashboard
+    if(status){
+      query.status = status;
+    } else {
+      query.status = { $nin: ["Resolved","Rejected"] };
+    }
 
-    res.json({ complaints });
+    if(area){
+      query.locationText = { $regex: area, $options: "i" };
+    }
+
+    const sortObj = sort === "upvotes" ? { upvotes: -1 } : { createdAt: -1 };
+
+    const pageNum = parseInt(page, 10) || 1;
+    const lim = parseInt(limit, 10) || 6;
+
+    const totalCount = await Complaint.countDocuments(query);
+    const totalPages = Math.max(1, Math.ceil(totalCount / lim));
+
+    const complaints = await Complaint.find(query)
+      .sort(sortObj)
+      .skip((pageNum - 1) * lim)
+      .limit(lim);
+
+    res.json({ complaints, totalPages });
 
   }catch(err){
 
@@ -435,13 +459,14 @@ router.put("/:id/reopen", authMiddleware, authorizeRoles("citizen"), async (req,
     if(!complaint)
       return res.status(404).json({message:"Complaint not found"});
 
-    if(complaint.status !== "Resolved")
+
+    if(complaint.status !== "Resolved" && complaint.status !== "Rejected")
       return res.status(400).json({
-        message:"Only resolved complaints can be reopened"
+        message:"Only resolved or rejected complaints can be reopened"
       });
 
-    complaint.status="Reopened";
-    complaint.resolvedAt=null;
+    complaint.status = "Reopened";
+    complaint.resolvedAt = null;
 
     await complaint.save();
 

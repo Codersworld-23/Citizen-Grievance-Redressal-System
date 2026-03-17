@@ -1,235 +1,290 @@
-# Citizen Grievance Redressal System (CGRS)
+# 🚀 Citizen Grievance Redressal System (CGRS)
 
-A focused, production-ready grievance redressal platform built with the MERN stack. This README is aligned with the project's Project Summary and contains actionable setup instructions, architecture notes, API references, and visual placeholders.
-
-Table of Contents
-- Project overview
-- Key features
-- Tech stack
-- Quick start
-- Environment variables
-- API reference (core)
-- Architecture
-- Screenshots (existing + placeholders)
-- Email notifications
-- Contributing & Maintainers
+A full-stack web application that enables citizens to raise complaints, authorities to manage them and provides a transparent grievance resolution workflow.
 
 ---
 
-## Project overview
+## 🌐 Live Demo
 
-The Citizen Grievance Redressal System enables citizens to file civic complaints (roads, sanitation, electricity, water, etc.) with photos and location, and allows authorities to triage, update, and resolve issues. The system supports duplicate detection, upvotes for prioritization, role-based access, and notification workflows.
-
-Goals
-- Reduce duplicate reports and consolidate citizen feedback
-- Provide authorities with an easy triage dashboard
-- Keep citizens informed through status updates and comments
+* 🔗 Frontend: https://citizen-grievance-redressal-system.vercel.app
+* 🔗 Backend API: https://cgrs-backend.onrender.com
 
 ---
 
-## Key features
+## 📌 Features
 
-1. Authentication & roles
-        - Citizen registration with email validation
-        - Authority accounts with role-based access
-        - JWT-based session handling
+### 👤 Citizen
 
-2. Complaint lifecycle
-        - Submit complaints with title, description, department, location, and up to 3 photo attachments
-        - Status workflow: Submitted → In Progress → On Hold → Resolved → Reopened → Rejected
-        - Authorities can add remarks/comments and close complaints
+* Register & Login securely (JWT-based authentication)
+* Create complaints with images
+* View personal complaints
+* Browse all complaints
+* Upvote issues to highlight importance
+* Reopen resolved complaints
+* Get emails when their filed complaint's status gets updated or a new comment is added
 
-3. Duplicate detection
-        - Smart duplicate check based on title keywords, department and location
-        - User-facing modal showing similar complaints before submission
+### 🏢 Authority
 
-4. Community engagement
-        - Upvote complaints (prevents duplicate upvotes and self-upvotes)
-        - Sorting by upvotes to improve prioritization
+* View department-specific complaints
+* Five departments seeded for demo purposes (Roads, Water, Electricity, Sanitation & General)
+* Update complaint status (Submitted → In Progress → On Hold / Resolved / Rejected : spams)
+* Add comments on complaints
+* Get emails when a new complaint is filed or an existing one is deleted
 
-5. Location autocomplete
-        - Google Places API integration for address suggestions
+### 📢 System Features
 
-6. Media & email
-        - Photo uploads (Multer) with preview
-        - Email notifications for new complaints, status updates, comments, and reopens
+* 📧 Email notifications (Resend integration)
+* 🖼 Image uploads (Cloudinary)
+* 🔍 Duplicate complaint detection
+* 🔐 Rate limiting & security middleware
+* 📊 Structured complaint tracking system
+* 👌 Only valid email domains acceptable
+* ⛏️ Order complaints based on no. of upvotes, date created, last commented/updated
+* 🗃️ Filter complaints based on location, status
+---
 
-7. Dashboards
-        - Citizen dashboard (My Complaints)
-        - Authority dashboard (department-wise filtering, quick actions)
+## 🏗️ Tech Stack
+
+### Frontend
+
+* React (Vite)
+* React Router
+* Axios
+* Tailwind CSS
+
+### Backend
+
+* Node.js
+* Express.js
+* MongoDB (Mongoose)
+
+### Services
+
+* MongoDB Atlas (Database)
+* Cloudinary (Image storage)
+* Resend (Email service)
+* Render (Backend deployment)
+* Vercel (Frontend deployment)
 
 ---
 
-## Tech stack
+## ⚙️ Architecture
 
-- Frontend: React, Vite, Tailwind CSS
-- Backend: Node.js, Express.js, Multer, JWT
-- Database: MongoDB (Mongoose)
-- Email: Nodemailer (Gmail SMTP configurable)
-- Dev tools: Axios, ESLint, Vite
+```
+Frontend (Vercel)
+      ↓
+Backend API (Render)
+      ↓
+MongoDB Atlas
+      ↓
+Cloudinary (Images)
+      ↓
+Resend (Emails)
+```
 
 ---
 
-## Quick start
+## 🔐 Environment Variables
 
-1. Clone
+### Backend (`.env`)
 
-```bash
-git clone https://github.com/Varyam20/Citizen-Grievance-Redressal-System.git
+```
+PORT=5000
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_secret
+RESEND_API_KEY=your_resend_key
+DEMO_EMAIL=your_email
+
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+CLIENT_URL=https://your-frontend-url
+```
+
+### Frontend (`.env`)
+
+```
+VITE_API_URL=https://your-backend-url/api
+```
+
+---
+
+## 🧪 Demo Credentials
+
+### 👤 Citizen
+
+```
+Email: princygarg2004@gmail.com
+Password: your_password
+```
+
+### 🏢 Authority
+
+```
+Email: authority@example.com
+Password: your_password
+```
+
+---
+
+## 🚀 Local Setup
+
+### 1️⃣ Clone Repository
+
+```
+git clone https://github.com/Codersworld-23/Citizen-Grievance-Redressal-System.git
 cd Citizen-Grievance-Redressal-System
 ```
 
-2. Backend
+---
 
-```bash
+### 2️⃣ Backend Setup
+
+```
 cd backend
 npm install
-# create .env (see Environment variables below)
 npm run dev
 ```
 
-3. Frontend
+---
 
-```bash
+### 3️⃣ Frontend Setup
+
+```
 cd frontend
 npm install
 npm run dev
 ```
 
-Open the app:
-
-- Frontend: http://localhost:5173/
-- Backend: http://localhost:5000/
-
 ---
 
-## Environment variables
+## 🔧 Deployment
 
-Create a `.env` file in `backend/` with at least:
+### Backend (Render)
 
-```env
-PORT=5000
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
-EMAIL_HOST=smtp.gmail.com
-EMAIL_USER=you@example.com
-EMAIL_PASS=your_email_password
-DEMO_EMAIL=your_demo_forwarding_email@example.com
+* Connected GitHub repo
+* Set environment variables
+* Start command:
+
+```
+node server.js
 ```
 
-On the frontend create `.env` in `frontend/`:
+### Frontend (Vercel)
 
-```env
-VITE_API_URL=http://localhost:5000
+* Framework: Vite
+* Build command:
+
+```
+npm run build
 ```
 
-Do not commit `.env` to source control.
+* Output directory:
 
----
-
-## API reference (core)
-
-Auth
-- `POST /api/auth/register` — register { name, email, password }
-- `POST /api/auth/login` — login returns `{ token, role, user }`
-
-Complaints
-- `POST /api/complaints` — submit complaint (FormData: title, description, department, locationText, photos[])
-- `GET /api/complaints` — list public complaints (supports pagination & filters)
-- `GET /api/complaints/my` — authenticated user's complaints
-- `GET /api/complaints/:id` — single complaint details
-- `POST /api/complaints/check-duplicate` — check duplicates before submit
-- `POST /api/complaints/:id/upvote` — upvote complaint
-- `PUT /api/complaints/:id/status` — authority updates status/comment
-- `PUT /api/complaints/:id/reopen` — reopen resolved complaint
-- `DELETE /api/complaints/:id` — delete own complaint
-
-See `backend/routes/` for full route details and required auth/role middleware.
-
----
-
-## Architecture
-
-Backend responsibilities:
-- `server.js`: express entry, middleware, routes
-- `config/db.js`: Mongo connection
-- `models/`: `User`, `Complaint`, `Notification`
-- `utils/emailService.js`: email sending and templates
-- `middleware/`: `authMiddleware.js`, `roleMiddleware.js`
-
-Frontend responsibilities:
-- Pages: `Login`, `Register`, `NewComplaint`, `MyComplaints`, `AllComplaints`, `AuthorityDashboard`, `FullComplaintView`
-- Components: `Navbar`, `Autocomplete`, `DuplicateModal`
-
----
-
-## Screenshots & image placeholders
-
-The repository already contains screenshots in `frontend/public/screenshots/` — these will show on GitHub if committed. Add or replace images as needed. Below are a set of curated visuals: existing screenshots are used where available; placeholders remain where you should add new images.
-
-- Home / Landing
-       - ![Home](frontend/public/screenshots/home.png)
-
-- Registration
-       - ![Registration](frontend/public/screenshots/RegistrationPage.png)
-
-- New Complaint (form + autocomplete + upload)
-       - ![New Complaint](frontend/public/screenshots/newComplaints.png)
-
-- Duplicate detection modal (add if not present)
-       - ![Duplicate Modal](frontend/public/screenshots/placeholder-duplicate.png)
-
-- My Complaints (user view)
-       - ![My Complaints](frontend/public/screenshots/userViewComplaints.png)
-
-- All Complaints / Filters
-       - ![All Complaints](frontend/public/screenshots/allComplaintsUser.png)
-
-- Authority Dashboard (department filters, upvotes)
-       - ![Authority Dashboard](frontend/public/screenshots/authDashboard.png)
-
-- Upvote interaction
-       - ![Upvote](frontend/public/screenshots/upvoteUser.png)
-
-- Address Autocomplete (add screenshot if desired)
-       - ![Autocomplete Placeholder](frontend/public/screenshots/placeholder-autocomplete.png)
-
-- Full complaint view (timeline & remarks) — add screenshot
-       - ![Full Complaint View](frontend/public/screenshots/placeholder-fullview.png)
-
-How to add screenshots
-
-1. Place your image under `frontend/public/screenshots/` with one of the filenames above (or update the README paths).
-2. Commit and push.
-
-Example:
-
-```bash
-cp ~/Downloads/fullview.png frontend/public/screenshots/placeholder-fullview.png
-git add frontend/public/screenshots/placeholder-fullview.png && git commit -m "Add full complaint view screenshot"
-git push
+```
+dist
 ```
 
 ---
 
-## Email notifications
+## 📸 Screenshots
 
-Types:
-- NEW_COMPLAINT: notify authorities
-- STATUS_UPDATE: notify citizen
-- COMMENT: notify citizen
-- REOPENED: notify authorities
+### 🔐 Authentication
 
-Configuration is in `backend/utils/emailService.js`. Use `.env` EMAIL_* values for credentials and a test/demo forwarding address `DEMO_EMAIL` in development.
+#### 💠 Login Page
+
+![Login Page](frontend/public/screenshots/home.png)
+
+#### 💠 Register Page
+
+![Register Page](frontend/public/screenshots/RegistrationPage.png)
+
+#### 💠 Valid Email And Domain Check
+
+![String Check](frontend/public/screenshots/registrationValidation.png)
+![Domain Check](frontend/public/screenshots/gmailValidation.png)
+
+---
+
+### 👤 Citizen Dashboard
+
+#### 💠 Create New Complaint
+
+![New Complaint](frontend/public/screenshots/newComplaints.png)
+
+#### 💠 My Complaints
+
+![My Complaints](frontend/public/screenshots/my-complaints.png)
+
+#### 💠 All Complaints Feed
+
+![All Complaints](frontend/public/screenshots/all-complaints.png)
+
+#### 💠 Complaint Detail View
+
+![Complaint Detail](frontend/public/screenshots/complaint-detail.png)
+
+#### 💠 Duplicate Complaint Check
+
+![Complaint Detail](frontend/public/screenshots/duplicacyCheck.png)
 
 ---
 
-## Contributing & maintainers
+### 🏢 Authority Dashboard
 
-To contribute:
+#### 💠 Authority Panel
 
-1. Fork the repo
-2. Create a feature branch
-3. Open a PR with a clear description
+![Authority Dashboard](frontend/public/screenshots/authority-dashboard.png)
+
+#### 💠 Status Update & Comments
+
+![Status Update](frontend/public/screenshots/status-update.png)
+![Status Update](frontend/public/screenshots/comment.png)
+
+#### 💠 Sorting And Filtering
+
+![Filter By Status](frontend/public/screenshots/status-sort.png)
+![Filter By Area / Sort](frontend/public/screenshots/sortingAreaFiltering.png)
 
 ---
+
+### 📧 System Features
+
+#### 💠 Email Notification (Resend)
+
+![New Complaint Filed](frontend/public/screenshots/new.jpg)
+![Complaint Deleted](frontend/public/screenshots/dlt.jpg)
+![Status Updated](frontend/public/screenshots/upd.jpg)
+![New Comment](frontend/public/screenshots/cmnt.jpg)
+![Notification Bar View](frontend/public/screenshots/notif.jpg)
+
+---
+
+## 💡 Future Improvements
+
+* 🔍 AI-based complaint categorization
+* 📊 Analytics dashboard for authorities
+* 🌍 Admin panel for surveillance
+* 🌦 Weather-based insights (for civic issues)
+
+---
+
+## 🤝 Contributing
+
+Pull requests are welcome. For major changes, please open an issue first.
+
+---
+
+## 👩‍💻 Author
+
+**Princy Garg**
+
+* GitHub: https://github.com/Codersworld-23
+* Email: [princygarg2004@gmail.com](mailto:princygarg2004@gmail.com)
+
+---
+
+## ⭐ Show your support
+
+If you like this project, give it a ⭐ on GitHub!

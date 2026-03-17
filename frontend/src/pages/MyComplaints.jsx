@@ -116,14 +116,27 @@ export default function MyComplaints() {
                   </div>
 
                   <div className="text-xs mt-1">
-                    Status: {c.status}
+                    Status: 
+                    <span className={`font-medium ${
+                      c.status === "Resolved"
+                        ? "text-green-600"
+                        : c.status === "In Progress"
+                        ? "text-yellow-600"
+                        : c.status === "On Hold"
+                        ? "text-orange-600"
+                        : c.status === "Rejected"
+                        ? "text-red-600"
+                        : c.status === "Reopened"
+                        ? "text-purple-600"
+                        : "text-gray-700"
+                    }`}>{c.status}</span>
                   </div>
 
                 </div>
 
                 <div className="flex gap-2 mt-3">
 
-                  {c.status === "Resolved" && (
+                  {(c.status === "Resolved" || c.status === "Rejected") && (
 
                     <button
                       onClick={()=>handleReopen(c._id)}

@@ -21,22 +21,40 @@ export default function AuthorityDashboard() {
   const fetchComplaints = async () => {
     if (!token) return;
     try {
+      const params = { page, limit: 6 };
+      if (statusFilter) params.status = statusFilter;
+      if (areaFilter) params.area = areaFilter;
+      if (sortOption) params.sort = sortOption;
+
       const res = await axios.get(
         "https://cgrs-backend.onrender.com/api/complaints",
         {
           headers: { Authorization: `Bearer ${token}` },
-          params: {
-            status: statusFilter,
-            area: areaFilter,
-            sort: sortOption,
-            page: page,
-            limit: 6
-          }
+          params,
         }
       );
 
-      setComplaints(res.data.complaints);
-      setTotalPages(res.data.totalPages);
+      let fetched = res.data.complaints || [];
+
+      // fallback client-side filtering/sorting in case backend params were ignored
+      if (areaFilter) {
+        const af = areaFilter.toLowerCase();
+        fetched = fetched.filter((c) =>
+          c.locationText?.toLowerCase().includes(af)
+        );
+      }
+
+      if (sortOption === "upvotes") {
+        fetched.sort((a, b) => (b.upvotes || 0) - (a.upvotes || 0));
+      } else {
+        // date
+        fetched.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      }
+
+      setComplaints(fetched);
+      setTotalPages(res.data.totalPages || 1);
 
     } catch (err) {
       console.error("Failed to fetch complaints", err);
@@ -125,7 +143,14 @@ export default function AuthorityDashboard() {
       {/* 🔥 COMPLAINT GRID */}
       <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
 
-        {complaints.map((c) => (
+        {(complaints
+          .filter((c) => {
+            // If a specific status is chosen, only show complaints with that status
+            if (statusFilter) return c.status === statusFilter;
+            // by default, hide Resolved and Rejected from active view
+            return c.status !== "Resolved" && c.status !== "Rejected";
+          })
+        ).map((c) => (
 
           <div
             key={c._id}
@@ -153,9 +178,19 @@ export default function AuthorityDashboard() {
 
               <div className="mt-2 text-sm">
                 Status:{" "}
-                <span className="font-medium">
-                  {c.status}
-                </span>
+                <span className={`font-medium ${
+                  c.status === "Resolved"
+                    ? "text-green-600"
+                    : c.status === "In Progress"
+                    ? "text-yellow-600"
+                    : c.status === "On Hold"
+                    ? "text-orange-600"
+                    : c.status === "Rejected"
+                    ? "text-red-600"
+                    : c.status === "Reopened"
+                    ? "text-purple-600"
+                    : "text-gray-700"
+                }`}>{c.status}</span>
               </div>
 
               {c.photos?.length > 0 && (
@@ -198,10 +233,18 @@ export default function AuthorityDashboard() {
                     }
                   >
                     <option value="">Set status</option>
-                    <option>In Progress</option>
-                    <option>On Hold</option>
-                    <option>Resolved</option>
-                    <option>Rejected</option>
+                    {[
+                      "In Progress",
+                      "On Hold",
+                      "Resolved",
+                      "Rejected",
+                    ]
+                      .filter((s) => s !== c.status)
+                      .map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
                   </select>
 
                   <input
